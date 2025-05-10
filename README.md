@@ -4,6 +4,7 @@ A lightweight web-based image editor that allows you to adjust brightness, contr
 
 ![Image Color Editor Screenshot](screenshot.png)
 
+Live Demo: https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.html
 
 ## Features
 
@@ -70,3 +71,5 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 marchetti.lance@gmail.com  
 
 Project Link: https://github.com/LanceMarchetti/image-color-editor
+
+Live Demo: https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.html
