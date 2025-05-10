@@ -445,7 +445,6 @@
 if (format !== 'gif') {
     link.href = dataUrl;
     link.click();
-	}
 }
             
             // Helper function to load images
