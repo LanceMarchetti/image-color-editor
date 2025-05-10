@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Color Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+	<!--<script src="https://unpkg.com/gif.js@0.2.0/dist/gif.js"></script>-->
+	<script src="gif.js"></script>
+<script src="gif.worker.js"></script>
+    <style>
+        .canvas-container {
+            border: 1px solid #ddd;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .slider-container {
+            width: 100%;
+            max-width: 300px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .download-btn {
+            min-width: 100px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">Image Color Editor</h1>
+        
+        <!-- Target Image Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Image Editor</h2>
+            <div class="mb-4">
+                <input type="file" id="targetFile" accept="image/*" class="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100">
+            </div>
+            <div id="targetCanvasContainer" class="canvas-container">
+                <canvas id="targetCanvas"></canvas>
+            </div>
+        </div>
+        
+        <!-- Controls Section -->
+        <div class="mt-8 bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Color Adjustment Controls</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Brightness -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Brightness</span>
+                        <span id="brightnessValue">0%</span>
+                    </div>
+                    <input type="range" id="brightnessSlider" min="-100" max="100" value="0" class="slider">
+                </div>
+                
+                <!-- Contrast -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Contrast</span>
+                        <span id="contrastValue">0%</span>
+                    </div>
+                    <input type="range" id="contrastSlider" min="-100" max="100" value="0" class="slider">
+                </div>
+                
+                <!-- Saturation -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Saturation</span>
+                        <span id="saturationValue">0%</span>
+                    </div>
+                    <input type="range" id="saturationSlider" min="-100" max="100" value="0" class="slider">
+                </div>
+                
+                <!-- Hue -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Hue</span>
+                        <span id="hueValue">0°</span>
+                    </div>
+                    <input type="range" id="hueSlider" min="-180" max="180" value="0" class="slider">
+                </div>
+                
+                <!-- Temperature -->
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Temperature</span>
+                        <span id="temperatureValue">0%</span>
+                    </div>
+                    <input type="range" id="temperatureSlider" min="-100" max="100" value="0" class="slider">
+                </div>
+                
+                <!-- Blend Mode -->
+                <div class="slider-container">
+                    <label for="blendMode" class="block text-sm font-medium text-gray-700 mb-1">Blend Mode</label>
+                    <select id="blendMode" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="source-over">Normal</option>
+                        <option value="multiply">Multiply</option>
+                        <option value="screen">Screen</option>
+                        <option value="overlay">Overlay</option>
+                        <option value="darken">Darken</option>
+                        <option value="lighten">Lighten</option>
+                        <option value="color-dodge">Color Dodge</option>
+                        <option value="color-burn">Color Burn</option>
+                        <option value="hard-light">Hard Light</option>
+                        <option value="soft-light">Soft Light</option>
+                        <option value="difference">Difference</option>
+                        <option value="exclusion">Exclusion</option>
+                        <option value="hue">Hue</option>
+                        <option value="saturation">Saturation</option>
+                        <option value="color">Color</option>
+                        <option value="luminosity">Luminosity</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex flex-wrap gap-4">
+                <button id="resetBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    Reset Adjustments
+                </button>
+            </div>
+
+            <!-- Download Options Section -->
+            <div class="mt-8">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Download Options</h2>
+                <div class="flex flex-wrap gap-4">
+                    <button id="downloadPngBtn" class="download-btn px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Download PNG
+                    </button>
+                    <button id="downloadWebpBtn" class="download-btn px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
+                        Download WEBP
+                    </button>
+                    <button id="downloadJpgBtn" class="download-btn px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        Download JPG
+                    </button>
+                    <button id="downloadGifBtn" class="download-btn px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
+                        Download GIF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Canvas elements
+            const targetCanvas = document.getElementById('targetCanvas');
+            const targetCtx = targetCanvas.getContext('2d');
+            
+            // File input
+            const targetFileInput = document.getElementById('targetFile');
+            
+            // Sliders
+            const brightnessSlider = document.getElementById('brightnessSlider');
+            const contrastSlider = document.getElementById('contrastSlider');
+            const saturationSlider = document.getElementById('saturationSlider');
+            const hueSlider = document.getElementById('hueSlider');
+            const temperatureSlider = document.getElementById('temperatureSlider');
+            const blendModeSelect = document.getElementById('blendMode');
+            
+            // Value displays
+            const brightnessValue = document.getElementById('brightnessValue');
+            const contrastValue = document.getElementById('contrastValue');
+            const saturationValue = document.getElementById('saturationValue');
+            const hueValue = document.getElementById('hueValue');
+            const temperatureValue = document.getElementById('temperatureValue');
+            
+            // Buttons
+            const resetBtn = document.getElementById('resetBtn');
+            const downloadPngBtn = document.getElementById('downloadPngBtn');
+            const downloadWebpBtn = document.getElementById('downloadWebpBtn');
+            const downloadJpgBtn = document.getElementById('downloadJpgBtn');
+            const downloadGifBtn = document.getElementById('downloadGifBtn');
+            
+            // Image reference
+            let targetImage = null;
+            let originalImageData = null;
+            
+            // Event listener for file input
+            targetFileInput.addEventListener('change', function(e) {
+                loadImage(e, targetCanvas, targetCtx, function(img) {
+                    targetImage = img;
+                    // Store original image data for reset
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = img.width;
+                    tempCanvas.height = img.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(img, 0, 0);
+                    originalImageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                });
+            });
+            
+            // Event listeners for sliders
+            brightnessSlider.addEventListener('input', function() {
+                brightnessValue.textContent = this.value + '%';
+                if (targetImage) applyColorAdjustments();
+            });
+            
+            contrastSlider.addEventListener('input', function() {
+                contrastValue.textContent = this.value + '%';
+                if (targetImage) applyColorAdjustments();
+            });
+            
+            saturationSlider.addEventListener('input', function() {
+                saturationValue.textContent = this.value + '%';
+                if (targetImage) applyColorAdjustments();
+            });
+            
+            hueSlider.addEventListener('input', function() {
+                hueValue.textContent = this.value + '°';
+                if (targetImage) applyColorAdjustments();
+            });
+            
+            temperatureSlider.addEventListener('input', function() {
+                temperatureValue.textContent = this.value + '%';
+                if (targetImage) applyColorAdjustments();
+            });
+            
+            // Blend mode change
+            blendModeSelect.addEventListener('change', function() {
+                if (targetImage) applyColorAdjustments();
+            });
+            
+            // Reset adjustments
+            resetBtn.addEventListener('click', function() {
+                brightnessSlider.value = 0;
+                contrastSlider.value = 0;
+                saturationSlider.value = 0;
+                hueSlider.value = 0;
+                temperatureSlider.value = 0;
+                blendModeSelect.value = 'source-over';
+                
+                brightnessValue.textContent = '0%';
+                contrastValue.textContent = '0%';
+                saturationValue.textContent = '0%';
+                hueValue.textContent = '0°';
+                temperatureValue.textContent = '0%';
+                
+                if (targetImage && originalImageData) {
+                    // Reset to original image
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = originalImageData.width;
+                    tempCanvas.height = originalImageData.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.putImageData(originalImageData, 0, 0);
+                    
+                    // Calculate display dimensions
+                    const container = document.getElementById('targetCanvasContainer');
+                    const maxWidth = container.clientWidth;
+                    const maxHeight = 600;
+                    
+                    let width = tempCanvas.width;
+                    let height = tempCanvas.height;
+                    
+                    if (width > maxWidth) {
+                        height = (maxWidth / width) * height;
+                        width = maxWidth;
+                    }
+                    
+                    if (height > maxHeight) {
+                        width = (maxHeight / height) * width;
+                        height = maxHeight;
+                    }
+                    
+                    // Set canvas dimensions
+                    targetCanvas.width = width;
+                    targetCanvas.height = height;
+                    
+                    // Draw image
+                    targetCtx.drawImage(tempCanvas, 0, 0, width, height);
+                }
+            });
+            
+            // Download image as PNG
+            downloadPngBtn.addEventListener('click', function() {
+                downloadImage('png');
+            });
+            
+            // Download image as WEBP
+            downloadWebpBtn.addEventListener('click', function() {
+                downloadImage('webp');
+            });
+            
+            // Download image as JPG
+            downloadJpgBtn.addEventListener('click', function() {
+                downloadImage('jpeg', 0.92); // 0.92 is the quality for JPG
+            });
+            
+            // Download image as GIF
+            downloadGifBtn.addEventListener('click', function() {
+                downloadImage('gif');
+            });
+            
+            // Helper function to download image in different formats
+            function downloadImage(format, quality) {
+                if (!targetImage) return;
+                
+                // Create a temporary canvas with full resolution
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Set canvas dimensions to match original image
+                tempCanvas.width = targetImage.naturalWidth || targetImage.width;
+                tempCanvas.height = targetImage.naturalHeight || targetImage.height;
+                
+                // Draw the original image at full size
+                tempCtx.drawImage(targetImage, 0, 0, tempCanvas.width, tempCanvas.height);
+                
+                // Get image data
+                let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                let data = imageData.data;
+                
+                // Apply brightness
+                const brightnessValue = parseInt(brightnessSlider.value);
+                if (brightnessValue !== 0) {
+                    const factor = 1 + brightnessValue / 100;
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, Math.max(0, data[i] * factor));
+                        data[i+1] = Math.min(255, Math.max(0, data[i+1] * factor));
+                        data[i+2] = Math.min(255, Math.max(0, data[i+2] * factor));
+                    }
+                }
+                
+               // Apply contrast
+                const contrastValue = parseInt(contrastSlider.value);
+                if (contrastValue !== 0) {
+                    const factor = (259 * (contrastValue + 255)) / (255 * (259 - contrastValue));
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));
+                        data[i+1] = Math.min(255, Math.max(0, factor * (data[i+1] - 128) + 128));
+                        data[i+2] = Math.min(255, Math.max(0, factor * (data[i+2] - 128) + 128));
+                    }
+                }
+                
+                // Apply saturation
+                const saturationValue = parseInt(saturationSlider.value);
+                if (saturationValue !== 0) {
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i+1];
+                        const b = data[i+2];
+                        const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b;
+                        
+                        data[i] = Math.min(255, Math.max(0, gray + (r - gray) * (saturationValue + 100) / 100));
+                        data[i+1] = Math.min(255, Math.max(0, gray + (g - gray) * (saturationValue + 100) / 100));
+                        data[i+2] = Math.min(255, Math.max(0, gray + (b - gray) * (saturationValue + 100) / 100));
+                    }
+                }
+                
+                // Apply hue rotation
+                const hueValue = parseInt(hueSlider.value);
+                if (hueValue !== 0) {
+                    const cos = Math.cos(hueValue * Math.PI / 180);
+                    const sin = Math.sin(hueValue * Math.PI / 180);
+                    
+                    for (let j = 0; j < data.length; j += 4) {
+                        const r = data[j];
+                        const g = data[j+1];
+                        const b = data[j+2];
+                        
+                        const y = 0.299 * r + 0.587 * g + 0.114 * b;
+                        const i = 0.595716 * r - 0.274453 * g - 0.321263 * b;
+                        const q = 0.211456 * r - 0.522591 * g + 0.311135 * b;
+                        
+                        const newI = cos * i - sin * q;
+                        const newQ = sin * i + cos * q;
+                        
+                        data[j] = Math.max(0, Math.min(255, y + 0.9563 * newI + 0.6210 * newQ));
+                        data[j+1] = Math.max(0, Math.min(255, y - 0.2721 * newI - 0.6474 * newQ));
+                        data[j+2] = Math.max(0, Math.min(255, y - 1.1070 * newI + 1.7046 * newQ));
+                    }
+                }
+                
+                // Apply temperature
+                const temperatureValue = parseInt(temperatureSlider.value);
+                if (temperatureValue !== 0) {
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (temperatureValue > 0) {
+                            data[i] = Math.min(255, data[i] * (1 + temperatureValue/200));
+                            data[i+2] = Math.max(0, data[i+2] * (1 - temperatureValue/200));
+                        } else {
+                            data[i] = Math.max(0, data[i] * (1 + temperatureValue/200));
+                            data[i+2] = Math.min(255, data[i+2] * (1 - temperatureValue/200));
+                        }
+                    }
+                }
+                
+                // Put the modified data back
+                tempCtx.putImageData(imageData, 0, 0);
+                
+                // Download the image in specified format
+                const link = document.createElement('a');
+                link.download = `edited-image.${format}`;
+                
+                let mimeType, dataUrl;
+                switch(format) {
+                    case 'png':
+                        mimeType = 'image/png';
+                        dataUrl = tempCanvas.toDataURL(mimeType);
+                        break;
+                    case 'webp':
+                        mimeType = 'image/webp';
+                        dataUrl = tempCanvas.toDataURL(mimeType, quality || 0.92);
+                        break;
+                    case 'jpeg':
+                        mimeType = 'image/jpeg';
+                        dataUrl = tempCanvas.toDataURL(mimeType, quality || 0.92);
+                        break;
+                    case 'gif':
+    // Export as GIF using gif.js
+    const ctx = tempCanvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: tempCanvas.width,
+        height: tempCanvas.height,
+    });
+    gif.addFrame(imageData, { copy: true });
+    gif.on('finished', function(blob) {
+        link.href = URL.createObjectURL(blob);
+        link.click();
+    });
+    gif.render();
+    break;
+    default:
+        mimeType = 'image/png';
+        dataUrl = tempCanvas.toDataURL(mimeType);
+        link.href = dataUrl;
+        link.click();
+	}
+ } // ✅ Added missing closing brace for downloadImage function
+            
+            // Helper function to load images
+            function loadImage(event, canvas, ctx, callback) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Calculate dimensions to fit in container while maintaining aspect ratio
+                        const container = canvas.parentElement;
+                        const maxWidth = container.clientWidth;
+                        const maxHeight = 600; // Fixed height for consistency
+                        
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > maxWidth) {
+                            height = (maxWidth / width) * height;
+                            width = maxWidth;
+                        }
+                        
+                        if (height > maxHeight) {
+                            width = (maxHeight / height) * width;
+                            height = maxHeight;
+                        }
+                        
+                        // Set canvas dimensions
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        // Draw image
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Call callback with the original image (not resized)
+                        callback(img);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // Apply color adjustments to target image
+            function applyColorAdjustments() {
+                if (!targetImage) return;
+                
+                // Create a temporary canvas for processing
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Set canvas dimensions to match original image
+                tempCanvas.width = targetImage.naturalWidth || targetImage.width;
+                tempCanvas.height = targetImage.naturalHeight || targetImage.height;
+                
+                // Draw the original image at full size
+                tempCtx.drawImage(targetImage, 0, 0, tempCanvas.width, tempCanvas.height);
+                
+                // Get image data
+                let imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                let data = imageData.data;
+                
+                // Apply brightness
+                const brightnessValue = parseInt(brightnessSlider.value);
+                if (brightnessValue !== 0) {
+                    const factor = 1 + brightnessValue / 100;
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, Math.max(0, data[i] * factor));     // R
+                        data[i+1] = Math.min(255, Math.max(0, data[i+1] * factor)); // G
+                        data[i+2] = Math.min(255, Math.max(0, data[i+2] * factor)); // B
+                    }
+                }
+                
+                // Apply contrast
+                const contrastValue = parseInt(contrastSlider.value);
+                if (contrastValue !== 0) {
+                    const factor = (259 * (contrastValue + 255)) / (255 * (259 - contrastValue));
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));     // R
+                        data[i+1] = Math.min(255, Math.max(0, factor * (data[i+1] - 128) + 128)); // G
+                        data[i+2] = Math.min(255, Math.max(0, factor * (data[i+2] - 128) + 128)); // B
+                    }
+                }
+                
+                // Apply saturation
+                const saturationValue = parseInt(saturationSlider.value);
+                if (saturationValue !== 0) {
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i+1];
+                        const b = data[i+2];
+                        
+                        const gray = 0.2989 * r + 0.5870 * g + 0.1140 * b; // weights from CCIR 601 spec
+                        
+                        data[i] = Math.min(255, Math.max(0, gray + (r - gray) * (saturationValue + 100) / 100));     // R
+                        data[i+1] = Math.min(255, Math.max(0, gray + (g - gray) * (saturationValue + 100) / 100));   // G
+                        data[i+2] = Math.min(255, Math.max(0, gray + (b - gray) * (saturationValue + 100) / 100));   // B
+                    }
+                }
+                
+                // Apply hue rotation
+                const hueValue = parseInt(hueSlider.value);
+                if (hueValue !== 0) {
+                    const cos = Math.cos(hueValue * Math.PI / 180);
+                    const sin = Math.sin(hueValue * Math.PI / 180);
+                    
+                    for (let j = 0; j < data.length; j += 4) {
+                        const r = data[j];
+                        const g = data[j+1];
+                        const b = data[j+2];
+                        
+                        // RGB to YIQ (NTSC color space)
+                        const y = 0.299 * r + 0.587 * g + 0.114 * b;
+                        const i = 0.595716 * r - 0.274453 * g - 0.321263 * b;
+                        const q = 0.211456 * r - 0.522591 * g + 0.311135 * b;
+                        
+                        // Apply hue rotation in YIQ space
+                        const newI = cos * i - sin * q;
+                        const newQ = sin * i + cos * q;
+                        
+                        // YIQ back to RGB
+                        data[j] = Math.max(0, Math.min(255, y + 0.9563 * newI + 0.6210 * newQ));
+                        data[j+1] = Math.max(0, Math.min(255, y - 0.2721 * newI - 0.6474 * newQ));
+                        data[j+2] = Math.max(0, Math.min(255, y - 1.1070 * newI + 1.7046 * newQ));
+                    }
+                }
+                
+                // Apply temperature (simplified version)
+                const temperatureValue = parseInt(temperatureSlider.value);
+                if (temperatureValue !== 0) {
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Warm (increase red, decrease blue)
+                        if (temperatureValue > 0) {
+                            data[i] = Math.min(255, data[i] * (1 + temperatureValue/200));     // R
+                            data[i+2] = Math.max(0, data[i+2] * (1 - temperatureValue/200));   // B
+                        } 
+                        // Cool (increase blue, decrease red)
+                        else {
+                            data[i] = Math.max(0, data[i] * (1 + temperatureValue/200));      // R
+                            data[i+2] = Math.min(255, data[i+2] * (1 - temperatureValue/200)); // B
+                        }
+                    }
+                }
+                
+                // Put the modified data back
+                tempCtx.putImageData(imageData, 0, 0);
+                
+                // Display the result
+                const resultImg = new Image();
+                resultImg.onload = function() {
+                    // Calculate display dimensions while maintaining aspect ratio
+                    const container = document.getElementById('targetCanvasContainer');
+                    const maxWidth = container.clientWidth;
+                    const maxHeight = 600;
+                    
+                    let width = resultImg.width;
+                    let height = resultImg.height;
+                    
+                    if (width > maxWidth) {
+                        height = (maxWidth / width) * height;
+                        width = maxWidth;
+                    }
+                    
+                    if (height > maxHeight) {
+                        width = (maxHeight / height) * width;
+                        height = maxHeight;
+                    }
+                    
+                    // Set canvas size
+                    targetCanvas.width = width;
+                    targetCanvas.height = height;
+                    
+                    // Draw image
+                    targetCtx.drawImage(resultImg, 0, 0, width, height);
+                };
+                resultImg.src = tempCanvas.toDataURL();
+            }
+			
+        });
+    </script>
+</body>
+</html>
