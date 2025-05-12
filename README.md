@@ -1,6 +1,13 @@
 # Image Color Editor
 
-A lightweight web-based image editor that allows you to adjust brightness, contrast, saturation, hue, and temperature of images, and export them in multiple formats including PNG, JPEG, WebP, and GIF.
+A lightweight web-based image editor that allows you to adjust brightness, contrast, saturation, hue, and temperature of images, and export them in multiple formats including PNG, JPEG, WebP, and GIF. I've also added a new preset called "80's Arcade" that combines:
+        Increased brightness (15%)
+        Higher contrast (30%)
+        Boosted saturation (40%)
+        Pixelization effect (70%)
+    This creates a vibrant, blocky look reminiscent of 80's arcade games! xD
+
+
 
 ![Image Color Editor Screenshot](screenshot.png)
 
