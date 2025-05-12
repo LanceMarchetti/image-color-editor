@@ -6,9 +6,8 @@
     <title>Image Color Editor v1.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-	<!--<script src="https://unpkg.com/gif.js@0.2.0/dist/gif.js"></script>-->
-	<script src="gif.js"></script>
-<script src="gif.worker.js"></script>
+    <script src="gif.js"></script>
+    <script src="gif.worker.js"></script>
     <style>
         .canvas-container {
             border: 1px solid #ddd;
@@ -47,8 +46,18 @@
                     file:bg-blue-50 file:text-blue-700
                     hover:file:bg-blue-100">
             </div>
-            <div id="targetCanvasContainer" class="canvas-container">
-                <canvas id="targetCanvas"></canvas>
+            <div class="flex flex-col md:flex-row gap-4">
+                <div id="targetCanvasContainer" class="canvas-container">
+                    <canvas id="targetCanvas"></canvas>
+                </div>
+                <div id="originalCanvasContainer" class="canvas-container hidden">
+                    <canvas id="originalCanvas"></canvas>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button id="toggleComparisonBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    Show Side-by-Side Comparison
+                </button>
             </div>
         </div>
         
@@ -102,26 +111,30 @@
                     <input type="range" id="temperatureSlider" min="-100" max="100" value="0" class="slider">
                 </div>
                 
-                <!-- Blend Mode -->
+                <!-- Pixelization (80's Arcade Effect) -->
                 <div class="slider-container">
-                    <label for="blendMode" class="block text-sm font-medium text-gray-700 mb-1">Blend Mode</label>
-                    <select id="blendMode" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                        <option value="source-over">Normal</option>
-                        <option value="multiply">Multiply</option>
-                        <option value="screen">Screen</option>
-                        <option value="overlay">Overlay</option>
-                        <option value="darken">Darken</option>
-                        <option value="lighten">Lighten</option>
-                        <option value="color-dodge">Color Dodge</option>
-                        <option value="color-burn">Color Burn</option>
-                        <option value="hard-light">Hard Light</option>
-                        <option value="soft-light">Soft Light</option>
-                        <option value="difference">Difference</option>
-                        <option value="exclusion">Exclusion</option>
-                        <option value="hue">Hue</option>
-                        <option value="saturation">Saturation</option>
-                        <option value="color">Color</option>
-                        <option value="luminosity">Luminosity</option>
+                    <div class="slider-label">
+                        <span>Pixelization</span>
+                        <span id="pixelizeValue">0%</span>
+                    </div>
+                    <input type="range" id="pixelizeSlider" min="0" max="100" value="0" class="slider">
+                </div>
+                
+                <!-- Image Presets -->
+                <div class="slider-container">
+                    <label for="presetSelect" class="block text-sm font-medium text-gray-700 mb-1">Image Presets</label>
+                    <select id="presetSelect" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="none">None (Original)</option>
+                        <option value="sepia">Sepia</option>
+                        <option value="bw">Black & White</option>
+                        <option value="vintage">Vintage</option>
+                        <option value="retro">Retro</option>
+                        <option value="cool">Cool</option>
+                        <option value="warm">Warm</option>
+                        <option value="dramatic">Dramatic</option>
+                        <option value="highContrast">High Contrast</option>
+                        <option value="faded">Faded</option>
+                        <option value="arcade">80's Arcade</option>
                     </select>
                 </div>
             </div>
@@ -158,9 +171,14 @@
             // Canvas elements
             const targetCanvas = document.getElementById('targetCanvas');
             const targetCtx = targetCanvas.getContext('2d');
+            const originalCanvas = document.getElementById('originalCanvas');
+            const originalCtx = originalCanvas.getContext('2d');
             
             // File input
             const targetFileInput = document.getElementById('targetFile');
+            
+            // Comparison toggle
+            const toggleComparisonBtn = document.getElementById('toggleComparisonBtn');
             
             // Sliders
             const brightnessSlider = document.getElementById('brightnessSlider');
@@ -168,7 +186,8 @@
             const saturationSlider = document.getElementById('saturationSlider');
             const hueSlider = document.getElementById('hueSlider');
             const temperatureSlider = document.getElementById('temperatureSlider');
-            const blendModeSelect = document.getElementById('blendMode');
+            const pixelizeSlider = document.getElementById('pixelizeSlider');
+            const presetSelect = document.getElementById('presetSelect');
             
             // Value displays
             const brightnessValue = document.getElementById('brightnessValue');
@@ -176,6 +195,99 @@
             const saturationValue = document.getElementById('saturationValue');
             const hueValue = document.getElementById('hueValue');
             const temperatureValue = document.getElementById('temperatureValue');
+            const pixelizeValue = document.getElementById('pixelizeValue');
+            
+            // Preset definitions
+            const presets = {
+                none: {
+                    brightness: 0,
+                    contrast: 0,
+                    saturation: 0,
+                    hue: 0,
+                    temperature: 0,
+                    pixelize: 0
+                },
+                sepia: {
+                    brightness: 5,
+                    contrast: 10,
+                    saturation: -20,
+                    hue: 30,
+                    temperature: 30,
+                    pixelize: 0
+                },
+                bw: {
+                    brightness: 0,
+                    contrast: 20,
+                    saturation: -100,
+                    hue: 0,
+                    temperature: 0,
+                    pixelize: 0
+                },
+                vintage: {
+                    brightness: -5,
+                    contrast: -10,
+                    saturation: -30,
+                    hue: 20,
+                    temperature: 15,
+                    pixelize: 0
+                },
+                retro: {
+                    brightness: 10,
+                    contrast: 20,
+                    saturation: 20,
+                    hue: -10,
+                    temperature: 40,
+                    pixelize: 0
+                },
+                cool: {
+                    brightness: 0,
+                    contrast: 0,
+                    saturation: 10,
+                    hue: 0,
+                    temperature: -40,
+                    pixelize: 0
+                },
+                warm: {
+                    brightness: 5,
+                    contrast: 0,
+                    saturation: 10,
+                    hue: 0,
+                    temperature: 40,
+                    pixelize: 0
+                },
+                dramatic: {
+                    brightness: -5,
+                    contrast: 40,
+                    saturation: 10,
+                    hue: 0,
+                    temperature: -10,
+                    pixelize: 0
+                },
+                highContrast: {
+                    brightness: 0,
+                    contrast: 50,
+                    saturation: 20,
+                    hue: 0,
+                    temperature: 0,
+                    pixelize: 0
+                },
+                faded: {
+                    brightness: 10,
+                    contrast: -20,
+                    saturation: -20,
+                    hue: 0,
+                    temperature: 10,
+                    pixelize: 0
+                },
+                arcade: {
+                    brightness: 15,
+                    contrast: 30,
+                    saturation: 40,
+                    hue: 0,
+                    temperature: 0,
+                    pixelize: 70
+                }
+            };
             
             // Buttons
             const resetBtn = document.getElementById('resetBtn');
@@ -190,6 +302,18 @@
             
             // Event listener for file input
             targetFileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                // Check file size (3MB limit)
+                const maxSizeInBytes = 3 * 1024 * 1024; // 3MB
+                if (file.size > maxSizeInBytes) {
+                    alert('File size exceeds the 3MB limit. Please choose a smaller image.');
+                    // Reset the file input
+                    this.value = '';
+                    return;
+                }
+                
                 loadImage(e, targetCanvas, targetCtx, function(img) {
                     targetImage = img;
                     // Store original image data for reset
@@ -205,32 +329,101 @@
             // Event listeners for sliders
             brightnessSlider.addEventListener('input', function() {
                 brightnessValue.textContent = this.value + '%';
+                // Reset preset selection when manually adjusting
+                presetSelect.value = 'none';
                 if (targetImage) applyColorAdjustments();
             });
             
             contrastSlider.addEventListener('input', function() {
                 contrastValue.textContent = this.value + '%';
+                // Reset preset selection when manually adjusting
+                presetSelect.value = 'none';
                 if (targetImage) applyColorAdjustments();
             });
             
             saturationSlider.addEventListener('input', function() {
                 saturationValue.textContent = this.value + '%';
+                // Reset preset selection when manually adjusting
+                presetSelect.value = 'none';
                 if (targetImage) applyColorAdjustments();
             });
             
             hueSlider.addEventListener('input', function() {
                 hueValue.textContent = this.value + '°';
+                // Reset preset selection when manually adjusting
+                presetSelect.value = 'none';
                 if (targetImage) applyColorAdjustments();
             });
             
             temperatureSlider.addEventListener('input', function() {
                 temperatureValue.textContent = this.value + '%';
+                // Reset preset selection when manually adjusting
+                presetSelect.value = 'none';
                 if (targetImage) applyColorAdjustments();
             });
             
-            // Blend mode change
-            blendModeSelect.addEventListener('change', function() {
+            pixelizeSlider.addEventListener('input', function() {
+                pixelizeValue.textContent = this.value + '%';
+                // Reset preset selection when manually adjusting
+                presetSelect.value = 'none';
                 if (targetImage) applyColorAdjustments();
+            });
+            
+            // Preset selection change
+            presetSelect.addEventListener('change', function() {
+                const preset = presets[this.value];
+                if (!preset) return;
+                
+                // Apply preset values to sliders
+                brightnessSlider.value = preset.brightness;
+                contrastSlider.value = preset.contrast;
+                saturationSlider.value = preset.saturation;
+                hueSlider.value = preset.hue;
+                temperatureSlider.value = preset.temperature;
+                pixelizeSlider.value = preset.pixelize;
+                
+                // Update value displays
+                brightnessValue.textContent = preset.brightness + '%';
+                contrastValue.textContent = preset.contrast + '%';
+                saturationValue.textContent = preset.saturation + '%';
+                hueValue.textContent = preset.hue + '°';
+                temperatureValue.textContent = preset.temperature + '%';
+                pixelizeValue.textContent = preset.pixelize + '%';
+                
+                if (targetImage) applyColorAdjustments();
+            });
+            
+            // Toggle side-by-side comparison
+            toggleComparisonBtn.addEventListener('click', function() {
+                const originalContainer = document.getElementById('originalCanvasContainer');
+                const isHidden = originalContainer.classList.contains('hidden');
+                
+                if (isHidden) {
+                    // Show original image
+                    originalContainer.classList.remove('hidden');
+                    this.textContent = 'Hide Comparison';
+                    
+                    // Display original image if we have one
+                    if (targetImage && originalImageData) {
+                        // Create a temporary canvas with the original image data
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = originalImageData.width;
+                        tempCanvas.height = originalImageData.height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.putImageData(originalImageData, 0, 0);
+                        
+                        // Calculate display dimensions (same as target canvas)
+                        originalCanvas.width = targetCanvas.width;
+                        originalCanvas.height = targetCanvas.height;
+                        
+                        // Draw original image
+                        originalCtx.drawImage(tempCanvas, 0, 0, originalCanvas.width, originalCanvas.height);
+                    }
+                } else {
+                    // Hide original image
+                    originalContainer.classList.add('hidden');
+                    this.textContent = 'Show Side-by-Side Comparison';
+                }
             });
             
             // Reset adjustments
@@ -240,13 +433,15 @@
                 saturationSlider.value = 0;
                 hueSlider.value = 0;
                 temperatureSlider.value = 0;
-                blendModeSelect.value = 'source-over';
+                pixelizeSlider.value = 0;
+                presetSelect.value = 'none';
                 
                 brightnessValue.textContent = '0%';
                 contrastValue.textContent = '0%';
                 saturationValue.textContent = '0%';
                 hueValue.textContent = '0°';
                 temperatureValue.textContent = '0%';
+                pixelizeValue.textContent = '0%';
                 
                 if (targetImage && originalImageData) {
                     // Reset to original image
@@ -280,6 +475,13 @@
                     
                     // Draw image
                     targetCtx.drawImage(tempCanvas, 0, 0, width, height);
+                    
+                    // Update comparison view if visible
+                    if (!document.getElementById('originalCanvasContainer').classList.contains('hidden')) {
+                        originalCanvas.width = width;
+                        originalCanvas.height = height;
+                        originalCtx.drawImage(tempCanvas, 0, 0, width, height);
+                    }
                 }
             });
             
@@ -333,7 +535,7 @@
                     }
                 }
                 
-               // Apply contrast
+                // Apply contrast
                 const contrastValue = parseInt(contrastSlider.value);
                 if (contrastValue !== 0) {
                     const factor = (259 * (contrastValue + 255)) / (255 * (259 - contrastValue));
@@ -400,6 +602,32 @@
                 // Put the modified data back
                 tempCtx.putImageData(imageData, 0, 0);
                 
+                // Apply pixelization effect
+                const pixelizeValue = parseInt(pixelizeSlider.value);
+                if (pixelizeValue > 0) {
+                    // Create a temporary canvas for pixelization
+                    const pixelCanvas = document.createElement('canvas');
+                    const pixelCtx = pixelCanvas.getContext('2d');
+                    
+                    // Calculate pixel size based on slider value (1-100%)
+                    // Higher value = larger pixels (more pixelated)
+                    const pixelSize = Math.max(2, Math.ceil((pixelizeValue / 100) * 20));
+                    
+                    // Set small canvas size (dividing by pixel size)
+                    pixelCanvas.width = Math.max(1, Math.floor(tempCanvas.width / pixelSize));
+                    pixelCanvas.height = Math.max(1, Math.floor(tempCanvas.height / pixelSize));
+                    
+                    // Draw small
+                    pixelCtx.drawImage(tempCanvas, 0, 0, pixelCanvas.width, pixelCanvas.height);
+                    
+                    // Clear original canvas
+                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // Draw back to original size with pixelated effect
+                    tempCtx.imageSmoothingEnabled = false; // This is key for the pixelated look
+                    tempCtx.drawImage(pixelCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                }
+                
                 // Download the image in specified format
                 const link = document.createElement('a');
                 link.download = `edited-image.${format}`;
@@ -419,34 +647,34 @@
                         dataUrl = tempCanvas.toDataURL(mimeType, quality || 0.92);
                         break;
                     case 'gif':
-    // Export as GIF using gif.js
-    const ctx = tempCanvas.getContext('2d');
-    const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-    const gif = new GIF({
-        workers: 2,
-        quality: 10,
-        width: tempCanvas.width,
-        height: tempCanvas.height,
-    });
-    gif.addFrame(imageData, { copy: true });
-    gif.on('finished', function(blob) {
-        link.href = URL.createObjectURL(blob);
-        link.click();
-    });
-    gif.render();
-    break;
-    default:
-        mimeType = 'image/png';
-        dataUrl = tempCanvas.toDataURL(mimeType);
-        break;
-}
-
-// ✅ This must run for all cases except GIF
-if (format !== 'gif') {
-    link.href = dataUrl;
-    link.click();
-	}
-}
+                        // Export as GIF using gif.js
+                        const ctx = tempCanvas.getContext('2d');
+                        const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                        const gif = new GIF({
+                            workers: 2,
+                            quality: 10,
+                            width: tempCanvas.width,
+                            height: tempCanvas.height,
+                        });
+                        gif.addFrame(imageData, { copy: true });
+                        gif.on('finished', function(blob) {
+                            link.href = URL.createObjectURL(blob);
+                            link.click();
+                        });
+                        gif.render();
+                        break;
+                    default:
+                        mimeType = 'image/png';
+                        dataUrl = tempCanvas.toDataURL(mimeType);
+                        break;
+                }
+                
+                // This must run for all cases except GIF
+                if (format !== 'gif') {
+                    link.href = dataUrl;
+                    link.click();
+                }
+            }
             
             // Helper function to load images
             function loadImage(event, canvas, ctx, callback) {
@@ -594,6 +822,32 @@ if (format !== 'gif') {
                 // Put the modified data back
                 tempCtx.putImageData(imageData, 0, 0);
                 
+                // Apply pixelization effect
+                const pixelizeValue = parseInt(pixelizeSlider.value);
+                if (pixelizeValue > 0) {
+                    // Create a temporary canvas for pixelization
+                    const pixelCanvas = document.createElement('canvas');
+                    const pixelCtx = pixelCanvas.getContext('2d');
+                    
+                    // Calculate pixel size based on slider value (1-100%)
+                    // Higher value = larger pixels (more pixelated)
+                    const pixelSize = Math.max(2, Math.ceil((pixelizeValue / 100) * 20));
+                    
+                    // Set small canvas size (dividing by pixel size)
+                    pixelCanvas.width = Math.max(1, Math.floor(tempCanvas.width / pixelSize));
+                    pixelCanvas.height = Math.max(1, Math.floor(tempCanvas.height / pixelSize));
+                    
+                    // Draw small
+                    pixelCtx.drawImage(tempCanvas, 0, 0, pixelCanvas.width, pixelCanvas.height);
+                    
+                    // Clear original canvas
+                    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // Draw back to original size with pixelated effect
+                    tempCtx.imageSmoothingEnabled = false; // This is key for the pixelated look
+                    tempCtx.drawImage(pixelCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                }
+                
                 // Display the result
                 const resultImg = new Image();
                 resultImg.onload = function() {
@@ -619,12 +873,12 @@ if (format !== 'gif') {
                     targetCanvas.width = width;
                     targetCanvas.height = height;
                     
-                    // Draw image
+                    // Draw image with pixelated rendering if needed
+                    targetCtx.imageSmoothingEnabled = pixelizeValue === 0;
                     targetCtx.drawImage(resultImg, 0, 0, width, height);
                 };
                 resultImg.src = tempCanvas.toDataURL();
             }
-			
         });
     </script>
 </body>
