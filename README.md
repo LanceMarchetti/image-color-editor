@@ -4,7 +4,7 @@ A lightweight web-based image editor that allows you to adjust brightness, contr
 
 ![Image Color Editor Screenshot](screenshot.png)
 
-Live Demo: https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.html
+Live Demo: [https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.html](https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.html)
 
 ## Features
 
@@ -23,41 +23,48 @@ Live Demo: https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.
 - HTML5 Canvas
 - TailwindCSS
 - Vanilla JavaScript
-- [gif.js](https://github.com/jnordberg/gif.js ) for GIF encoding
+- [gif.js](https://github.com/jnordberg/gif.js) for GIF encoding
 
 
 ## Folder Structure
 
-/Image-Color-Editor-v1.0
-
-- ImageColorEditor.html
-- gif.js
-- gif.worker.js
-- LICENSE.txt
-- README.md
-- screenshot.png
+```
+/image-color-editor
+├── ImageColorEditor.html
+├── gif.js
+├── gif.worker.js
+├── LICENSE
+├── README.md
+└── screenshot.png
+```
 
 
 ## How to Run Locally
 
-   Clone the repository:
+1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/image-color-editor.git
+   git clone https://github.com/LanceMarchetti/image-color-editor.git
    ```
+2. Navigate to the project directory:
+   ```bash
    cd image-color-editor
+   ```
+3. Start a local server:
+   ```bash
    python -m http.server
+   ```
 
-   //or use VS Code + Live Server extension http://localhost:8000
+   Alternatively, if you're using Visual Studio Code, you can use the [Live Server extension](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) to serve the project at [http://localhost:5500](http://localhost:5500)
    
    
 ## License
 
-This project is licensed under the MIT License � see the [LICENSE] file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
    
 
 ## Acknowledgments
 
-- [gif.js](https://github.com/jnordberg/gif.js ) by Johan Nordberg � used for GIF export
+- [gif.js](https://github.com/jnordberg/gif.js) by Johan Nordberg - used for GIF export
 - Inspired by open-source image editors and photo manipulation tutorials
 
 
@@ -68,8 +75,8 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 
 ## Contact 
 
-marchetti.lance@gmail.com  
+Email: marchetti.lance@gmail.com  
 
-Project Link: https://github.com/LanceMarchetti/image-color-editor
+Project Link: [https://github.com/LanceMarchetti/image-color-editor](https://github.com/LanceMarchetti/image-color-editor)
 
-Live Demo: https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.html
+Live Demo: [https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.html](https://lancemarchetti.github.io/image-color-editor/ImageColorEditor.html)
